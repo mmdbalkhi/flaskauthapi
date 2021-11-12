@@ -4,37 +4,23 @@
 
 import sys
 from typing import AnyStr
-from uuid import uuid4
 
+from config import secret_key
 from flask import Flask, jsonify, request
-
-from hash import hash_data, hash_username
-from sqlite import create_table, read_sql, write_sql
+from securiry import check_corrected, hash_data, password_secure
+from sqlite import create_table, read_sql, read_username_from_sql, write_sql
 
 app = Flask(__name__)
-app.secret_key = "wj# 5.7R_bvP<oR mNahq8h~!wU;'\""
+app.secret_key = secret_key
 
 
 secret_key = app.secret_key
 if not secret_key:
     print(
         "ERROR: we Can not Find secret_key. "
-        "Please Add secret_key For Your App and Run Again."
+        "Please Add secret_key For config.py and Run Again."
     )
     sys.exit(1)
-
-
-def check_corrected(username: AnyStr, password: AnyStr) -> bool:
-    data = {"username": username, "password": password}
-    data_hash = hash_data(data)
-
-    if not read_sql(username):
-        return False
-
-    if read_sql(username)[0] == data_hash:
-        return True
-
-    return
 
 
 @app.route("/signup", methods=["POST"])
@@ -47,8 +33,27 @@ def signup():
         username = request.form["username"]
         password = request.form["password"]
     except KeyError:
-        return jsonify({"status": "faile", "msg": "incorrect username or password"})
-
+        return (
+            jsonify({"status": "error", "msg": "arg(s) are wrong or incomplete"}),
+            400,
+        )
+    if read_username_from_sql(username):
+        return jsonify(
+            {
+                "status": "duplicate",
+                "msg": "username already registred",
+            }
+        )
+    if not password_secure(username, password):
+        return (
+            jsonify(
+                {
+                    "status": "not secure",
+                    "msg": "passoword not secure",
+                }
+            ),
+            406,
+        )
     write_sql(username, password)
     return jsonify({"status": "ok", "msg": "user created"})
 
@@ -60,15 +65,17 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
     except KeyError:
-        return jsonify({"status": "faile", "msg": "incorrect username or password"})
+        return (
+            jsonify({"status": "error", "msg": "(s) are wrong or incomplete"}),
+            405,
+        )
 
     if check_corrected(username, password):
-        return jsonify({"status": "ok", "msg": f"accese Grante for {username}"})
+        return jsonify({"status": "ok", "msg": f"accesse Grante for {username}"}), 406
 
     return jsonify({"status": "faile", "msg": "incorrect username or password"})
 
 
-# TODO: جلوگیری از تکراری شدن نوشته ها
 if __name__ == "__main__":
     create_table()
-    app.run("localhost", 5000, True)
+    app.run(host="localhost", port=5000, debug=False)
