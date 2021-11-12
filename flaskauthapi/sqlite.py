@@ -1,7 +1,7 @@
 import sqlite3
 from os.path import realpath
 
-from hash import hash_data, hash_username
+from securiry import hash_data, hash_username
 
 path = realpath(".") + "/" + "users.db"
 
@@ -22,7 +22,18 @@ def create_table():
 def read_sql(username):
     conn = sqlite3.connect(path)
     password = conn.execute(
-        f"""SELECT password FROM users where username in ('{hash_username(username)}');"""
+        f"""SELECT password FROM users
+        where username in ('{hash_username(username)}');"""
+    ).fetchone()
+    conn.close()
+    return password
+
+
+def read_username_from_sql(username):
+    conn = sqlite3.connect(path)
+    password = conn.execute(
+        f"""SELECT username FROM users
+        where username in ('{hash_username(username)}');"""
     ).fetchone()
     conn.close()
     return password
