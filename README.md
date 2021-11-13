@@ -1,2 +1,3 @@
 # flaskauthapi
-an api application for secure auth users
+
+an api application for secure user auth
